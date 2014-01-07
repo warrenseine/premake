@@ -53,10 +53,11 @@
 	end
 
 	function vc2010.localDebuggerWorkingDirectory(cfg)
-		if cfg.debugdir then
-			local dir = project.getrelative(cfg.project, cfg.debugdir)
+		-- if cfg.debugdir then
+			--local dir = project.getrelative(cfg.project, cfg.debugdir)
+			local dir = project.getrelative(cfg.project, table.concat({ "bin", cfg.platform, cfg.buildcfg }, "/"))
 			_x(2,'<LocalDebuggerWorkingDirectory>%s</LocalDebuggerWorkingDirectory>', path.translate(dir))
-		end
+		-- end
 	end
 
 	function vc2010.localDebuggerEnvironment(cfg)
