@@ -597,8 +597,8 @@
 
 	function oven.finishConfig(cfg)
 		-- assign human-readable names
-		cfg.longname = table.concat({ cfg.platform, cfg.buildcfg }, "|")
-		cfg.shortname = table.concat({ cfg.platform, cfg.buildcfg }, " ")
+		cfg.longname = table.concat({ cfg.platform or "", cfg.buildcfg }, "|")
+		cfg.shortname = table.concat({ cfg.platform or "", cfg.buildcfg }, " ")
 		cfg.shortname = cfg.shortname:gsub(" ", "_"):lower()
 		cfg.name = cfg.longname
 

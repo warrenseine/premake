@@ -28,7 +28,7 @@
 	function config.buildtargetinfo(cfg, kind, field)
 		local basedir = cfg.project.location
 
-		local defaultdir = table.concat({ basedir, "bin", cfg.platform, cfg.buildcfg }, "/")
+		local defaultdir = table.concat({ basedir, "bin", cfg.platform or "", cfg.buildcfg }, "/")
 
 		local directory = cfg[field.."dir"] or cfg.targetdir or defaultdir
 		local basename = cfg[field.."name"] or cfg.targetname or cfg.project.name
