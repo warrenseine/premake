@@ -405,7 +405,7 @@
 			if cfg.architecture == premake.UNIVERSAL then
 				_p('  LINKCMD = libtool -o $(TARGET) $(OBJECTS)')
 			else
-				_p('  LINKCMD = $(AR) -rcs $(TARGET) $(OBJECTS)')
+				_p('  LINKCMD = $(AR) rcs $(TARGET) $(OBJECTS)')
 			end
 		else
 			-- this was $(TARGET) $(LDFLAGS) $(OBJECTS)
