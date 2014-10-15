@@ -169,7 +169,7 @@
 -- List the objects file for the project, and each configuration.
 --
 
-	function make.cppObjects(prj)
+	function make.cppGetObjects(prj)
 		-- create lists for intermediate files, at the project level and
 		-- for each configuration
 		local root = { objects={}, resources={} }
@@ -243,6 +243,10 @@
 			end
 		})
 
+		return root, configs
+	end
+
+	function make.cppObjects(prj)
 		-- now I can write out the lists, project level first...
 		function listobjects(var, list)
 			_p('%s \\', var)
@@ -252,13 +256,14 @@
 			_p('')
 		end
 
+		local root, configs = make.cppGetObjects(prj)
 		listobjects('OBJECTS :=', root.objects, 'o')
 		listobjects('RESOURCES :=', root.resources, 'res')
 
 		-- ...then individual configurations, as needed
 		for cfg in project.eachconfig(prj) do
 			local files = configs[cfg]
-			if #files.objects > 0 or #files.resources > 0 then
+			if #files.objects > 0 or #files.resources > 0 or make.cpp.shouldGenerateLinkerResponseFiles(prj) then
 				_x('ifeq ($(config),%s)', cfg.shortname)
 				if #files.objects > 0 then
 					listobjects('  OBJECTS +=', files.objects)
@@ -266,12 +271,56 @@
 				if #files.resources > 0 then
 					listobjects('  RESOURCES +=', files.resources)
 				end
+				if make.cpp.shouldGenerateLinkerResponseFiles(prj) then
+					_p('\tLINKOBJECTS = @%s', make.cpp.getLinkerResponseFilePath(prj, cfg))
+				end
 				_p('endif')
 				_p('')
 			end
 		end
+
+		if not make.cpp.shouldGenerateLinkerResponseFiles(prj) then
+			_p('LINKOBJECTS = $(OBJECTS)')
+		end
 	end
 
+	-- Returns if we should generate a response file for objects.
+	function make.cpp.shouldGenerateLinkerResponseFiles(prj)
+		return true
+	end
+
+	function make.cpp.generateLinkerResponseFiles(prj)
+		if not make.cpp.shouldGenerateLinkerResponseFiles(prj) then
+			return
+		end
+
+		local root, configs = make.cppGetObjects(prj)
+
+		for cfg in project.eachconfig(prj) do
+			local files = configs[cfg]
+			local filename = make.cpp.getLinkerResponseFilePath(prj, cfg)
+			local objdir = project.getrelative(cfg.project, cfg.objdir);
+
+			premake.generate(prj, filename, function()
+				local function listobjects(objects)
+					for _, objectname in ipairs(objects) do
+						-- replace $(OBJDIR) with the object dir
+						local fullobj, _ = string.gsub(objectname, "%$%(OBJDIR%)", objdir)
+						local relobj = path.getrelative(prj.location, fullobj)
+						_p(relobj)
+					end
+				end
+
+				listobjects(root.objects)
+				listobjects(files.objects)
+			end)
+		end
+	end
+
+	function make.cpp.getLinkerResponseFilePath(prj, cfg)
+		local objdir = project.getrelative(cfg.project, cfg.objdir)
+		return path.join(objdir, 'linker.rsp')
+	end
 
 ---------------------------------------------------------------------------
 --
@@ -403,9 +452,9 @@
 	function make.linkCmd(cfg, toolset)
 		if cfg.kind == premake.STATICLIB then
 			if cfg.architecture == premake.UNIVERSAL then
-				_p('  LINKCMD = libtool -o $(TARGET) $(OBJECTS)')
+				_p('  LINKCMD = libtool -o $(TARGET) $(LINKOBJECTS)')
 			else
-				_p('  LINKCMD = $(AR) rcs $(TARGET) $(OBJECTS)')
+				_p('  LINKCMD = $(AR) rcs $(TARGET) $(LINKOBJECTS)')
 			end
 		else
 			-- this was $(TARGET) $(LDFLAGS) $(OBJECTS)
@@ -414,7 +463,7 @@
 			-- $(LIBS) moved to end (http://sourceforge.net/p/premake/bugs/279/)
 
 			local cc = iif(cfg.language == "C", "CC", "CXX")
-			_p('  LINKCMD = $(%s) -o $(TARGET) $(OBJECTS) $(RESOURCES) $(ARCH) $(ALL_LDFLAGS) $(LIBS)', cc)
+			_p('  LINKCMD = $(%s) -o $(TARGET) $(LINKOBJECTS) $(RESOURCES) $(ARCH) $(ALL_LDFLAGS) $(LIBS)', cc)
 		end
 	end
 
