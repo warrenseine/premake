@@ -40,6 +40,7 @@
 				premake.generate(prj, makefile, make.cs.generate)
 			elseif project.iscpp(prj) then
 				premake.generate(prj, makefile, make.cpp.generate)
+				make.cpp.generateLinkerResponseFiles(prj)
 			end
 		end,
 
